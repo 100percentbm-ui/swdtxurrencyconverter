@@ -1,0 +1,1215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Unshorten — expand shorthand numbers instantly</title>
+<meta name="description" content="Paste a screenshot or type a shorthand number like 501.22B and get the full value, ready to copy in five formats." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14171A;
+    --bg-raised:#1B1F22;
+    --card:#1E2226;
+    --card-hi:#242A2E;
+    --ink:#EDE9DC;
+    --ink-soft:#9AA09C;
+    --ink-faint:#676D69;
+    --green:#4FD9AF;
+    --green-dim:#2E9B7C;
+    --amber:#F0A94E;
+    --amber-dark:#C9852F;
+    --rule:#31373B;
+    --rule-soft:#262B2F;
+    --danger:#E27860;
+    --max:1000px;
+  }
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Space Grotesk', sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{ font-family:'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
+  a{ color:var(--green); }
+  .wrap{ max-width:var(--max); margin:0 auto; padding:0 28px; }
+
+  /* ---------- header ---------- */
+  header.site{
+    border-bottom:1px solid var(--rule);
+    padding:20px 0;
+    position:sticky; top:0;
+    background:rgba(20,23,26,0.85);
+    backdrop-filter: blur(10px);
+    z-index:20;
+  }
+  header.site .wrap{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;}
+  .logo{ font-weight:700; font-size:20px; letter-spacing:-0.02em; }
+  .logo span{ color:var(--green); }
+  nav.site-nav{ display:flex; gap:22px; font-size:13.5px; }
+  nav.site-nav a{ color:var(--ink-soft); text-decoration:none; }
+  nav.site-nav a:hover{ color:var(--ink); }
+
+  /* ---------- hero ---------- */
+  .hero{ padding:76px 0 60px; }
+  .hero .wrap{ display:grid; grid-template-columns: 1.1fr 0.9fr; gap:56px; align-items:center; }
+  h1{
+    font-size:clamp(32px, 4.4vw, 50px);
+    line-height:1.08;
+    font-weight:700;
+    letter-spacing:-0.015em;
+    margin:0 0 20px;
+    max-width:15ch;
+  }
+  .lede{
+    font-size:17px;
+    color:var(--ink-soft);
+    max-width:46ch;
+    margin:0 0 28px;
+  }
+  .lede .mono{ color:var(--ink); }
+  .hero-actions{ display:flex; gap:12px; flex-wrap:wrap; }
+  .btn{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600;
+    font-size:14.5px;
+    padding:12px 20px;
+    border-radius:9px;
+    border:1.5px solid var(--rule);
+    background:transparent;
+    color:var(--ink);
+    cursor:pointer;
+    text-decoration:none;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    transition: background .15s ease, color .15s ease, border-color .15s ease, transform .08s ease;
+  }
+  .btn:hover{ background:var(--card-hi); border-color:var(--ink-faint); }
+  .btn:active{ transform: translateY(1px); }
+  .btn-primary{
+    background:var(--amber);
+    border-color:var(--amber-dark);
+    color:#211404;
+  }
+  .btn-primary:hover{ background:var(--amber-dark); color:#fff3e0; }
+  .btn:disabled{ opacity:.4; cursor:not-allowed; }
+  .btn:disabled:hover{ background:transparent; }
+
+  /* ---------- hero demo panel (LCD-style) ---------- */
+  .demo-card{
+    background: #0E1112;
+    border:1px solid var(--rule);
+    border-radius:12px;
+    padding:26px 24px 22px;
+    box-shadow: 0 0 0 1px rgba(79,217,175,0.05), 0 20px 50px -20px rgba(0,0,0,0.6);
+  }
+  .demo-row{ display:flex; justify-content:space-between; align-items:baseline; font-size:12px; color:var(--ink-faint); margin-bottom:16px; letter-spacing:0.03em; }
+  .demo-dot{ display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--green); margin-right:6px; box-shadow:0 0 6px var(--green); }
+  .demo-line{
+    display:flex; align-items:baseline; justify-content:space-between;
+    border-bottom:1px dotted var(--rule);
+    padding:12px 0;
+    font-size:14px;
+  }
+  .demo-in{ color:var(--ink-soft); }
+  .demo-out{ font-size:23px; font-weight:600; color:var(--green); min-height:1.2em; text-shadow:0 0 14px rgba(79,217,175,0.35); }
+  .cursor-blink{ display:inline-block; width:9px; background:var(--green); margin-left:2px; animation:blink 1s steps(1) infinite; }
+  @keyframes blink{ 50%{ opacity:0; } }
+
+  /* ---------- sections ---------- */
+  section{ padding:56px 0; }
+  .section-head{ margin-bottom:32px; max-width:60ch; }
+  .section-head h2{ font-size:26px; margin:0 0 10px; letter-spacing:-0.01em; }
+  .section-head p{ color:var(--ink-soft); margin:0; font-size:15px; }
+
+  /* ---------- the tool: receipt card ---------- */
+  .receipt-wrap{ max-width:680px; margin:0 auto; }
+  .perf{
+    height:15px;
+    background: radial-gradient(circle at 10px 8px, var(--bg) 8px, transparent 8.5px) repeat-x;
+    background-size:20px 20px;
+  }
+  .perf.top{ background-position: -2px -8px; }
+  .perf.bottom{ background-position: -2px 8px; }
+  .receipt{
+    background:var(--card);
+    border-left:1px solid var(--rule);
+    border-right:1px solid var(--rule);
+    padding:8px 30px 26px;
+  }
+  .receipt-head{ text-align:center; padding:10px 0 16px; border-bottom:1px dashed var(--rule); margin-bottom:18px; }
+  .receipt-head .store{ font-weight:700; font-size:16px; letter-spacing:0.04em; }
+  .receipt-head .sub{ color:var(--ink-soft); font-size:12px; margin-top:4px; }
+
+  .field-label{ font-size:12.5px; color:var(--ink-soft); margin:0 0 8px; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
+  .field-label .mini-btn{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:11.5px;
+    font-weight:600;
+    color:var(--green);
+    background:none;
+    border:none;
+    cursor:pointer;
+    padding:2px 0;
+    text-decoration:underline;
+    text-underline-offset:2px;
+  }
+  .field-label .mini-btn:hover{ color:var(--amber); }
+
+  .dropzone{
+    border:1.5px dashed var(--rule);
+    border-radius:8px;
+    min-height:150px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    text-align:center;
+    color:var(--ink-soft);
+    font-size:13px;
+    padding:14px;
+    margin-bottom:12px;
+    cursor:crosshair;
+    transition:border-color .15s ease, background .15s ease;
+    overflow:hidden;
+    position:relative;
+    touch-action:none;
+  }
+  .dropzone.drag-over{ border-color:var(--green); background:#182420; }
+  .dropzone.has-image{ cursor:crosshair; }
+  .dropzone .hint-strong{ color:var(--ink); font-weight:600; }
+  .dz-stage{ position:relative; width:100%; display:flex; justify-content:center; }
+  .dz-stage img, .dz-stage canvas{ max-width:100%; max-height:260px; border-radius:6px; display:block; }
+  .crop-box{
+    position:absolute;
+    border:1.5px dashed var(--amber);
+    background:rgba(240,169,78,0.12);
+    pointer-events:none;
+  }
+
+  .btn-row{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .btn-sm{
+    font-family:'Space Grotesk', sans-serif;
+    font-size:12.5px;
+    font-weight:600;
+    padding:8px 12px;
+    border-radius:7px;
+    border:1px solid var(--rule);
+    background:var(--bg-raised);
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .btn-sm:hover{ border-color:var(--ink-faint); background:var(--card-hi); }
+  .btn-sm:disabled{ opacity:.4; cursor:not-allowed; }
+  .btn-sm.active{ border-color:var(--green); color:var(--green); }
+
+  .status-line{ font-size:11.5px; color:var(--ink-soft); margin:0 0 16px; min-height:1.3em; }
+  .status-line.ready::before{ content:"● "; color:var(--green); }
+  .status-line.busy::before{ content:"● "; color:var(--amber); }
+  .status-line.error::before{ content:"● "; color:var(--danger); }
+
+  details.advanced{
+    border:1px solid var(--rule);
+    border-radius:8px;
+    margin-bottom:18px;
+    background:var(--bg-raised);
+  }
+  details.advanced > summary{
+    padding:10px 14px;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--ink-soft);
+    cursor:pointer;
+    list-style:none;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  details.advanced > summary::-webkit-details-marker{ display:none; }
+  details.advanced > summary::after{ content:"+"; font-size:16px; color:var(--ink-faint); }
+  details.advanced[open] > summary::after{ content:"–"; }
+  .advanced-body{ padding:4px 14px 16px; }
+  .adv-row{ display:flex; align-items:center; gap:10px; margin-bottom:12px; font-size:12.5px; color:var(--ink-soft); }
+  .adv-row label{ width:92px; flex-shrink:0; }
+  .adv-row input[type="range"]{ flex:1; accent-color: var(--green); }
+  .adv-row .val{ width:38px; text-align:right; color:var(--ink); font-family:'IBM Plex Mono', monospace; font-size:12px; }
+  .adv-row input[type="checkbox"]{ accent-color: var(--green); width:15px; height:15px; }
+
+  textarea#detected{
+    width:100%;
+    resize:vertical;
+    min-height:52px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:14px;
+    padding:10px 12px;
+    border-radius:8px;
+    border:1px solid var(--rule);
+    background:var(--bg-raised);
+    color:var(--ink);
+    margin-bottom:6px;
+  }
+  textarea#detected:focus{ outline:none; border-color:var(--green); }
+  .confidence{ font-size:11px; color:var(--ink-faint); margin:0 0 14px; text-align:right; }
+
+  .stamp-row{ display:flex; align-items:center; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+  .stamp-row .stamp-hint{ font-size:12px; color:var(--ink-soft); }
+  .stamp{
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:700;
+    font-size:14px;
+    width:38px; height:38px;
+    border-radius:50%;
+    border:2px solid var(--green);
+    color:var(--green);
+    background:transparent;
+    cursor:pointer;
+    transition: background .12s ease, color .12s ease, transform .12s ease;
+  }
+  .stamp:nth-child(2){ transform:rotate(-4deg); }
+  .stamp:nth-child(3){ transform:rotate(3deg); }
+  .stamp:nth-child(4){ transform:rotate(-2deg); }
+  .stamp:nth-child(5){ transform:rotate(4deg); }
+  .stamp:hover{ background:var(--green); color:#08211a; }
+  .stamp:active{ transform:scale(0.92); }
+
+  .parse-row{ display:flex; justify-content:space-between; align-items:center; margin-bottom:22px; flex-wrap:wrap; gap:10px; }
+  .style-toggle{ display:flex; gap:2px; background:var(--bg-raised); border:1px solid var(--rule); border-radius:7px; padding:2px; font-size:11.5px; }
+  .style-toggle button{
+    border:none; background:transparent; color:var(--ink-soft);
+    padding:6px 9px; border-radius:5px; cursor:pointer; font-family:'Space Grotesk', sans-serif; font-weight:600;
+  }
+  .style-toggle button.active{ background:var(--card-hi); color:var(--green); }
+
+  .formats{ border-top:2px solid var(--ink-faint); padding-top:16px; }
+  .format-row{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:10px 0;
+    border-bottom:1px dotted var(--rule-soft);
+  }
+  .format-row:last-child{ border-bottom:none; }
+  .format-label{ font-size:11.5px; color:var(--ink-faint); width:96px; flex-shrink:0; }
+  .format-value{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:16px;
+    color:var(--green);
+    flex:1;
+    word-break:break-all;
+  }
+  .format-value.empty{ color:var(--ink-faint); font-size:14px; font-family:'Space Grotesk', sans-serif; }
+  .format-copy{
+    background:transparent;
+    border:1px solid var(--rule);
+    color:var(--ink-soft);
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600;
+    font-size:11.5px;
+    padding:6px 11px;
+    border-radius:6px;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .format-row:first-child .format-copy{
+    background:var(--amber); border-color:var(--amber-dark); color:#211404;
+  }
+  .format-copy:hover{ border-color:var(--green); color:var(--green); }
+  .format-row:first-child .format-copy:hover{ background:var(--amber-dark); color:#fff3e0; border-color:var(--amber-dark); }
+  .format-copy:disabled{ opacity:.35; cursor:not-allowed; }
+
+  .privacy-note{ text-align:center; font-size:11.5px; color:var(--ink-faint); margin-top:22px; }
+
+  /* ---------- how it works ---------- */
+  .steps{ max-width:640px; margin:0 auto; }
+  .step{
+    display:flex; justify-content:space-between; align-items:baseline; gap:16px;
+    padding:14px 0;
+    border-bottom:1px dotted var(--rule);
+  }
+  .step:last-child{ border-bottom:none; }
+  .step-what{ font-weight:600; font-size:15px; }
+  .step-detail{ color:var(--ink-soft); font-size:13.5px; text-align:right; max-width:34ch; }
+
+  /* ---------- reference table ---------- */
+  .ref-table{ max-width:640px; margin:0 auto; }
+  .ref-row{ display:flex; align-items:baseline; gap:10px; padding:9px 0; }
+  .ref-suffix{ font-family:'IBM Plex Mono', monospace; font-weight:700; color:var(--green); width:28px; }
+  .ref-name{ white-space:nowrap; font-size:14px; }
+  .ref-dots{ flex:1; border-bottom:1px dotted var(--rule); transform:translateY(-4px); }
+  .ref-value{ font-family:'IBM Plex Mono', monospace; font-size:14px; white-space:nowrap; color:var(--ink-soft); }
+
+  footer{
+    border-top:1px solid var(--rule);
+    padding:26px 0 34px;
+    color:var(--ink-faint);
+    font-size:12.5px;
+  }
+  footer .wrap{ display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+
+  @media (max-width: 800px){
+    .hero .wrap{ grid-template-columns:1fr; }
+    .step{ flex-direction:column; align-items:flex-start; gap:4px; }
+    .step-detail{ text-align:left; }
+    nav.site-nav{ display:none; }
+    .format-row{ flex-wrap:wrap; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .cursor-blink{ animation:none; }
+    html{ scroll-behavior:auto; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <div class="logo">un<span>shorten</span></div>
+    <nav class="site-nav">
+      <a href="#tool">Tool</a>
+      <a href="#how">How it works</a>
+      <a href="#reference">Reference</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <h1>Numbers shouldn't hide behind letters.</h1>
+      <p class="lede">Paste a screenshot of any shorthand figure — <span class="mono">170.22M</span>, <span class="mono">431.57B</span>, <span class="mono">1.03T</span> — and get it back fully expanded, in whichever format you need, ready to copy.</p>
+      <div class="hero-actions">
+        <a href="#tool" class="btn btn-primary">Try it now</a>
+        <a href="#how" class="btn">How it works</a>
+      </div>
+    </div>
+    <div class="demo-card" aria-hidden="true">
+      <div class="demo-row"><span><span class="demo-dot"></span>RUNNING LOCALLY</span><span class="mono">v2</span></div>
+      <div class="demo-line">
+        <span class="demo-in">reads</span>
+        <span class="demo-out mono" id="demo-in-val">501.22B</span>
+      </div>
+      <div class="demo-line" style="border-bottom:none;">
+        <span class="demo-in">prints</span>
+        <span class="demo-out mono" id="demo-out-val"><span class="cursor-blink">&nbsp;</span></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="tool">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>The tool</h2>
+      <p>Everything below runs in your browser. Nothing you paste or upload is sent anywhere.</p>
+    </div>
+
+    <div class="receipt-wrap">
+      <div class="perf top"></div>
+      <div class="receipt">
+        <div class="receipt-head">
+          <div class="store">UNSHORTEN</div>
+          <div class="sub">value expander · no zeros left behind</div>
+        </div>
+
+        <p class="field-label"><span>Image</span></p>
+        <div class="dropzone" id="dropzone" tabindex="0">
+          <span class="hint-strong">Drop a screenshot here</span>
+          <span>or click to browse, paste with ⌘V / Ctrl+V, or use a button below</span>
+        </div>
+        <input type="file" id="file-input" accept="image/*" hidden />
+        <div class="btn-row">
+          <button class="btn-sm" id="btn-browse">Choose image</button>
+          <button class="btn-sm" id="btn-paste-image">Paste image</button>
+          <button class="btn-sm" id="btn-capture">Capture screen</button>
+          <button class="btn-sm" id="btn-rotate-l" disabled>⟲ Rotate</button>
+          <button class="btn-sm" id="btn-rotate-r" disabled>⟳ Rotate</button>
+          <button class="btn-sm" id="btn-crop-reset" disabled>Reset crop</button>
+        </div>
+        <div class="status-line" id="ocr-status">Loading OCR engine…</div>
+
+        <details class="advanced" id="advanced-panel">
+          <summary>Advanced OCR tuning</summary>
+          <div class="advanced-body">
+            <div class="adv-row">
+              <label for="adv-scale">Upscale</label>
+              <input type="range" id="adv-scale" min="1" max="8" step="0.5" value="3">
+              <span class="val" id="adv-scale-val">3.0×</span>
+            </div>
+            <div class="adv-row">
+              <label for="adv-threshold">Threshold</label>
+              <input type="range" id="adv-threshold" min="0" max="255" step="1" value="140">
+              <span class="val" id="adv-threshold-val">140</span>
+            </div>
+            <div class="adv-row">
+              <label for="adv-invert">Invert</label>
+              <input type="checkbox" id="adv-invert">
+              <span style="color:var(--ink-faint);">light text on dark background</span>
+            </div>
+            <div class="btn-row" style="margin-bottom:0;">
+              <button class="btn-sm" id="btn-rerun-manual">Re-run OCR with these settings</button>
+              <button class="btn-sm" id="btn-rerun-auto">Re-run automatic (all passes)</button>
+            </div>
+          </div>
+        </details>
+
+        <p class="field-label">
+          <span>Detected text (editable)</span>
+          <button class="mini-btn" id="btn-paste-text">paste text</button>
+        </p>
+        <textarea id="detected" placeholder="OCR text will appear here — or just type a number, e.g. 414.55B"></textarea>
+        <div class="confidence" id="confidence"></div>
+
+        <div class="stamp-row">
+          <span class="stamp-hint">Add suffix:</span>
+          <button class="stamp" data-suffix="K">K</button>
+          <button class="stamp" data-suffix="M">M</button>
+          <button class="stamp" data-suffix="B">B</button>
+          <button class="stamp" data-suffix="T">T</button>
+        </div>
+
+        <div class="parse-row">
+          <div class="style-toggle" id="style-toggle">
+            <button data-style="us" class="active">1,234.56</button>
+            <button data-style="eu">1.234,56</button>
+            <button data-style="space">1 234,56</button>
+          </div>
+          <button class="btn-sm" id="btn-parse" style="background:var(--green); color:#08211a; border-color:var(--green-dim); font-weight:700;">Parse value</button>
+        </div>
+
+        <div class="formats" id="formats">
+          <div class="format-row">
+            <span class="format-label">Plain</span>
+            <span class="format-value empty" id="fmt-plain">—</span>
+            <button class="format-copy" data-target="fmt-plain" disabled>Copy</button>
+          </div>
+          <div class="format-row">
+            <span class="format-label">Grouped</span>
+            <span class="format-value empty" id="fmt-grouped">—</span>
+            <button class="format-copy" data-target="fmt-grouped" disabled>Copy</button>
+          </div>
+          <div class="format-row">
+            <span class="format-label">Currency</span>
+            <span class="format-value empty" id="fmt-currency">—</span>
+            <button class="format-copy" data-target="fmt-currency" disabled>Copy</button>
+          </div>
+          <div class="format-row">
+            <span class="format-label">Scientific</span>
+            <span class="format-value empty" id="fmt-scientific">—</span>
+            <button class="format-copy" data-target="fmt-scientific" disabled>Copy</button>
+          </div>
+          <div class="format-row">
+            <span class="format-label">Shorthand</span>
+            <span class="format-value empty" id="fmt-shorthand">—</span>
+            <button class="format-copy" data-target="fmt-shorthand" disabled>Copy</button>
+          </div>
+        </div>
+      </div>
+      <div class="perf bottom"></div>
+      <p class="privacy-note">Screenshots and text are processed on-device and never uploaded.</p>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>How it works</h2>
+      <p>Three ways in, five formats out.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <span class="step-what">Bring in a number</span>
+        <span class="step-detail">Screenshot, paste, drag a file, capture your screen, or just type it</span>
+      </div>
+      <div class="step">
+        <span class="step-what">Unshorten reads it</span>
+        <span class="step-detail">On-device OCR finds the digits and the K/M/B/T suffix — crop, rotate, or hand-tune threshold if it needs help</span>
+      </div>
+      <div class="step">
+        <span class="step-what">Copy in the format you need</span>
+        <span class="step-detail">Plain, grouped, currency, scientific, or re-abbreviated shorthand</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="reference">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>Suffix reference</h2>
+      <p>What each letter multiplies by.</p>
+    </div>
+    <div class="ref-table">
+      <div class="ref-row"><span class="ref-suffix">K</span><span class="ref-name">Thousand</span><span class="ref-dots"></span><span class="ref-value">× 1,000</span></div>
+      <div class="ref-row"><span class="ref-suffix">M</span><span class="ref-name">Million</span><span class="ref-dots"></span><span class="ref-value">× 1,000,000</span></div>
+      <div class="ref-row"><span class="ref-suffix">B</span><span class="ref-name">Billion</span><span class="ref-dots"></span><span class="ref-value">× 1,000,000,000</span></div>
+      <div class="ref-row"><span class="ref-suffix">T</span><span class="ref-name">Trillion</span><span class="ref-dots"></span><span class="ref-value">× 1,000,000,000,000</span></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>Unshorten — a small tool for a small annoyance.</span>
+    <span>Runs entirely in your browser.</span>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/6.0.0/tesseract.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  /* ============ core decimal-safe parsing / formatting ============ */
+
+  var MULT_ZEROS = { K:3, M:6, B:9, T:12 };
+  var NUMBER_RE = /[$€£]?\s*([0-9][0-9,]*\.?[0-9]*)\s*([KkMmBbTt])?/g;
+
+  function expand(numStr, suffix){
+    numStr = numStr.replace(/,/g, '');
+    var parts = numStr.split('.');
+    var intPart = parts[0] || '0';
+    var fracPart = parts[1] || '';
+    intPart = intPart.replace(/^0+(?=\d)/, '');
+    if(!suffix){
+      return intPart + (fracPart ? '.' + fracPart : '');
+    }
+    var n = MULT_ZEROS[suffix.toUpperCase()];
+    var resultInt, resultFrac;
+    if(fracPart.length <= n){
+      resultInt = intPart + fracPart + '0'.repeat(n - fracPart.length);
+      resultFrac = '';
+    } else {
+      resultInt = intPart + fracPart.slice(0, n);
+      resultFrac = fracPart.slice(n);
+    }
+    resultInt = resultInt.replace(/^0+(?=\d)/, '');
+    return resultInt + (resultFrac ? '.' + resultFrac : '');
+  }
+
+  function parseValue(text){
+    if(!text) return null;
+    var best = null;
+    var m;
+    NUMBER_RE.lastIndex = 0;
+    while((m = NUMBER_RE.exec(text)) !== null){
+      var numStr = m[1], suffix = m[2];
+      if(!numStr || numStr === '.') continue;
+      var digitsOnly = numStr.replace(/[,\.]/g, '');
+      if(!digitsOnly) continue;
+      var key = [ !!suffix, m[0].length ];
+      if(!best || key[0] > best.key[0] || (key[0] === best.key[0] && key[1] > best.key[1])){
+        best = { key: key, numStr: numStr, suffix: suffix };
+      }
+    }
+    if(!best) return null;
+    return expand(best.numStr, best.suffix);
+  }
+
+  function groupDigits(intPart, groupSep){
+    return intPart.replace(/\B(?=(\d{3})+(?!\d))/g, groupSep);
+  }
+
+  // style: 'us' -> 1,234.56 | 'eu' -> 1.234,56 | 'space' -> 1 234,56
+  function formatGrouped(plainStr, style){
+    var neg = plainStr.startsWith('-');
+    if(neg) plainStr = plainStr.slice(1);
+    var dot = plainStr.indexOf('.');
+    var intPart = dot === -1 ? plainStr : plainStr.slice(0, dot);
+    var fracPart = dot === -1 ? '' : plainStr.slice(dot+1);
+    var groupSep = style === 'us' ? ',' : (style === 'eu' ? '.' : ' ');
+    var decSep = style === 'us' ? '.' : ',';
+    var grouped = groupDigits(intPart, groupSep);
+    return (neg ? '-' : '') + grouped + (fracPart ? decSep + fracPart : '');
+  }
+
+  function toScientific(plainStr){
+    var neg = plainStr.startsWith('-');
+    if(neg) plainStr = plainStr.slice(1);
+    var dot = plainStr.indexOf('.');
+    var intPart = dot === -1 ? plainStr : plainStr.slice(0, dot);
+    var fracPart = dot === -1 ? '' : plainStr.slice(dot+1);
+    var digits = (intPart + fracPart).replace(/^0+/, '') || '0';
+    var pointPos = intPart.replace(/^0+/,'').length || 1;
+    // exponent = position of decimal point relative to first significant digit
+    var firstNonZero = (intPart+fracPart).search(/[1-9]/);
+    if(firstNonZero === -1) return '0';
+    var exp = intPart.length - firstNonZero - (intPart.replace(/^0+/,'').length === 0 ? 0 : 0);
+    // simpler: recompute exponent directly from intPart length vs leading zeros
+    var allDigits = intPart + fracPart;
+    var firstSig = allDigits.search(/[1-9]/);
+    exp = intPart.length - firstSig - 1;
+    var sig = allDigits.slice(firstSig).replace(/0+$/, '') || '0';
+    var mantissa = sig.length > 1 ? sig[0] + '.' + sig.slice(1) : sig[0];
+    if(mantissa.length > 8) mantissa = sig[0] + '.' + sig.slice(1, 7);
+    return (neg ? '-' : '') + mantissa + 'e' + (exp >= 0 ? '+' : '') + exp;
+  }
+
+  // Re-derive the nearest K/M/B/T shorthand from a full plain integer string.
+  function toShorthand(plainStr){
+    var neg = plainStr.startsWith('-');
+    if(neg) plainStr = plainStr.slice(1);
+    var dot = plainStr.indexOf('.');
+    var intPart = dot === -1 ? plainStr : plainStr.slice(0, dot);
+    var digits = intPart.replace(/^0+(?=\d)/, '');
+    var len = digits.length;
+    var tiers = [ [13,'T'], [10,'B'], [7,'M'], [4,'K'] ];
+    for(var i=0;i<tiers.length;i++){
+      if(len >= tiers[i][0]){
+        var zeros = tiers[i][0]-1;
+        var whole = digits.slice(0, len - zeros);
+        var frac = digits.slice(len - zeros, len - zeros + 2);
+        var out = whole + (frac ? '.' + frac.padEnd(2,'0') : '');
+        return (neg?'-':'') + out + tiers[i][1];
+      }
+    }
+    return (neg?'-':'') + digits;
+  }
+
+  function currencySymbolAndFormat(plainStr, style){
+    return '$' + formatGrouped(plainStr, style);
+  }
+
+  /* ============ hero demo animation ============ */
+
+  var demoPairs = [
+    ['501.22B', '501,220,000,000'],
+    ['170.22M', '170,220,000'],
+    ['1.03T', '1,030,000,000,000'],
+    ['4.2M', '4,200,000']
+  ];
+  var demoIdx = 0;
+  var outEl = document.getElementById('demo-out-val');
+  var inEl = document.getElementById('demo-in-val');
+
+  function runDemoCycle(){
+    var pair = demoPairs[demoIdx % demoPairs.length];
+    demoIdx++;
+    inEl.textContent = pair[0];
+    var target = pair[1];
+    var i = 0;
+    outEl.innerHTML = '';
+    var iv = setInterval(function(){
+      i++;
+      outEl.innerHTML = target.slice(0, i) + '<span class="cursor-blink">&nbsp;</span>';
+      if(i >= target.length){
+        clearInterval(iv);
+        setTimeout(runDemoCycle, 1800);
+      }
+    }, 45);
+  }
+  setTimeout(runDemoCycle, 600);
+
+  /* ============ OCR engine ============ */
+
+  var ocrReady = false;
+  var worker = null;
+  var ocrStatusEl = document.getElementById('ocr-status');
+  var btnCapture = document.getElementById('btn-capture');
+  var btnPasteImage = document.getElementById('btn-paste-image');
+
+  function setStatus(text, kind){
+    ocrStatusEl.textContent = text;
+    ocrStatusEl.className = 'status-line' + (kind ? ' ' + kind : '');
+  }
+
+  function initOCR(){
+    if(typeof Tesseract === 'undefined'){
+      setStatus('OCR engine failed to load (no internet access to cdnjs?) — you can still type numbers manually below.', 'error');
+      return;
+    }
+    setStatus('Loading OCR engine…', 'busy');
+    Tesseract.createWorker('eng', 1, {
+      logger: function(m){
+        if(m.status === 'recognizing text'){
+          setStatus('Reading image… ' + Math.round((m.progress||0)*100) + '%', 'busy');
+        }
+      }
+    }).then(function(w){
+      worker = w;
+      ocrReady = true;
+      setStatus('OCR ready', 'ready');
+    }).catch(function(err){
+      setStatus('OCR engine failed to initialize: ' + err.message, 'error');
+    });
+  }
+  initOCR();
+
+  if(!('mediaDevices' in navigator) || !navigator.mediaDevices.getDisplayMedia){
+    btnCapture.disabled = true;
+    btnCapture.title = 'Screen capture needs a secure context (https:// or localhost)';
+  }
+  if(!navigator.clipboard || !navigator.clipboard.read){
+    btnPasteImage.title = 'If this fails, click into the drop zone and press Ctrl+V instead';
+  }
+
+  /* ============ image state: rotation + crop ============ */
+
+  var originalImg = null;   // the loaded Image
+  var rotation = 0;         // 0,90,180,270
+  var cropRect = null;      // {x,y,w,h} in *displayed* canvas pixels, or null = full image
+
+  function getRotatedCanvas(img, rotationDeg){
+    var c = document.createElement('canvas');
+    var w = img.naturalWidth, h = img.naturalHeight;
+    var swap = (rotationDeg === 90 || rotationDeg === 270);
+    c.width = swap ? h : w;
+    c.height = swap ? w : h;
+    var ctx = c.getContext('2d');
+    ctx.save();
+    ctx.translate(c.width/2, c.height/2);
+    ctx.rotate(rotationDeg * Math.PI/180);
+    ctx.drawImage(img, -w/2, -h/2);
+    ctx.restore();
+    return c;
+  }
+
+  function renderPreview(){
+    if(!originalImg) return;
+    var rotated = getRotatedCanvas(originalImg, rotation);
+    var stage = document.querySelector('.dz-stage');
+    if(!stage){
+      dropzone.innerHTML = '<div class="dz-stage"></div>';
+      stage = document.querySelector('.dz-stage');
+    }
+    stage.innerHTML = '';
+    stage.appendChild(rotated);
+    rotated.style.maxWidth = '100%';
+    rotated.style.maxHeight = '260px';
+    rotated.style.borderRadius = '6px';
+    dropzone.classList.add('has-image');
+
+    if(cropRect){
+      var box = document.createElement('div');
+      box.className = 'crop-box';
+      var scaleX = rotated.clientWidth / rotated.width;
+      var scaleY = rotated.clientHeight / rotated.height;
+      box.style.left = (cropRect.x*scaleX) + 'px';
+      box.style.top = (cropRect.y*scaleY) + 'px';
+      box.style.width = (cropRect.w*scaleX) + 'px';
+      box.style.height = (cropRect.h*scaleY) + 'px';
+      stage.appendChild(box);
+    }
+    document.getElementById('btn-rotate-l').disabled = false;
+    document.getElementById('btn-rotate-r').disabled = false;
+    document.getElementById('btn-crop-reset').disabled = !cropRect;
+  }
+
+  function getWorkingCanvas(){
+    var rotated = getRotatedCanvas(originalImg, rotation);
+    if(!cropRect) return rotated;
+    var scaleFactorX = rotated.width / rotated.clientWidth || 1;
+    var scaleFactorY = rotated.height / rotated.clientHeight || 1;
+    var c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(cropRect.w));
+    c.height = Math.max(1, Math.round(cropRect.h));
+    c.getContext('2d').drawImage(rotated, cropRect.x, cropRect.y, cropRect.w, cropRect.h, 0, 0, c.width, c.height);
+    return c;
+  }
+
+  /* crop drag interaction (pointer events = mouse + touch) */
+  var cropStart = null;
+  dropzone.addEventListener('pointerdown', function(e){
+    if(!originalImg) return;
+    var canvas = dropzone.querySelector('canvas');
+    if(!canvas) return;
+    var rect = canvas.getBoundingClientRect();
+    var scaleX = canvas.width / rect.width;
+    var scaleY = canvas.height / rect.height;
+    cropStart = {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
+      rectEl: rect, scaleX: scaleX, scaleY: scaleY, canvasW: canvas.width, canvasH: canvas.height
+    };
+    e.preventDefault();
+  });
+  dropzone.addEventListener('pointermove', function(e){
+    if(!cropStart) return;
+    var x = (e.clientX - cropStart.rectEl.left) * cropStart.scaleX;
+    var y = (e.clientY - cropStart.rectEl.top) * cropStart.scaleY;
+    x = Math.max(0, Math.min(cropStart.canvasW, x));
+    y = Math.max(0, Math.min(cropStart.canvasH, y));
+    cropRect = {
+      x: Math.min(cropStart.x, x),
+      y: Math.min(cropStart.y, y),
+      w: Math.abs(x - cropStart.x),
+      h: Math.abs(y - cropStart.y)
+    };
+    renderPreview();
+  });
+  window.addEventListener('pointerup', function(){
+    if(cropStart && cropRect && (cropRect.w < 8 || cropRect.h < 8)){
+      cropRect = null;
+      renderPreview();
+    }
+    cropStart = null;
+  });
+
+  document.getElementById('btn-rotate-l').addEventListener('click', function(){
+    rotation = (rotation + 270) % 360;
+    cropRect = null;
+    renderPreview();
+  });
+  document.getElementById('btn-rotate-r').addEventListener('click', function(){
+    rotation = (rotation + 90) % 360;
+    cropRect = null;
+    renderPreview();
+  });
+  document.getElementById('btn-crop-reset').addEventListener('click', function(){
+    cropRect = null;
+    renderPreview();
+  });
+
+  /* ============ OCR preprocessing + multi-pass ============ */
+
+  function preprocessCanvas(srcCanvas, scale, mode, threshold){
+    var c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(srcCanvas.width * scale));
+    c.height = Math.max(1, Math.round(srcCanvas.height * scale));
+    var ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(srcCanvas, 0, 0, c.width, c.height);
+
+    if(mode === 'raw') return c;
+
+    var data = ctx.getImageData(0, 0, c.width, c.height);
+    var d = data.data;
+    var min=255, max=0;
+    for(var i=0;i<d.length;i+=4){
+      var g = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+      d[i]=d[i+1]=d[i+2]=g;
+      if(g<min) min=g;
+      if(g>max) max=g;
+    }
+    var range = Math.max(1, max-min);
+    for(i=0;i<d.length;i+=4){
+      var v = (d[i]-min) * 255/range;
+      if(mode === 'threshold') v = v > threshold ? 255 : 0;
+      else if(mode === 'inverted') v = (255-v) > threshold ? 255 : 0;
+      d[i]=d[i+1]=d[i+2]=v;
+    }
+    ctx.putImageData(data, 0, 0);
+    return c;
+  }
+
+  var OCR_OPTS_LINE = { tessedit_char_whitelist: '0123456789.,KMBTkmbt$\u20ac\u00a3', tessedit_pageseg_mode: '7' };
+  var OCR_OPTS_BLOCK = { tessedit_pageseg_mode: '6' };
+
+  function runOCR(canvas, opts){
+    return worker.setParameters(opts || {}).then(function(){
+      return worker.recognize(canvas);
+    }).then(function(res){
+      var text = (res && res.data && res.data.text || '').trim();
+      var conf = res && res.data && typeof res.data.confidence === 'number' ? res.data.confidence : null;
+      return { text: text, confidence: conf };
+    }).catch(function(){ return { text: '', confidence: null }; });
+  }
+
+  function setConfidence(conf){
+    var el = document.getElementById('confidence');
+    el.textContent = (conf === null || conf === undefined) ? '' : 'OCR confidence: ' + Math.round(conf) + '%';
+  }
+
+  function applyOCRResult(text, conf){
+    document.getElementById('detected').value = text || '';
+    setConfidence(conf);
+    var val = parseValue(text);
+    setFormats(val);
+    return val;
+  }
+
+  function runAutoOCR(){
+    if(!ocrReady || !worker){ setStatus('OCR not ready yet.', 'error'); return; }
+    var base = getWorkingCanvas();
+    var scale = Math.min(base.width, base.height) < 400 ? Math.min(8, Math.max(2, Math.round(400/Math.min(base.width, base.height)))) : 1.6;
+    var variants = [
+      preprocessCanvas(base, scale, 'contrast', 140),
+      preprocessCanvas(base, scale, 'threshold', 140),
+      preprocessCanvas(base, scale, 'inverted', 140)
+    ];
+    setStatus('Reading image…', 'busy');
+    var results = [];
+    var chain = Promise.resolve();
+    variants.forEach(function(canvas){
+      chain = chain.then(function(){ return runOCR(canvas, OCR_OPTS_LINE); }).then(function(r){ if(r.text) results.push(r); });
+      chain = chain.then(function(){ return runOCR(canvas, OCR_OPTS_BLOCK); }).then(function(r){ if(r.text) results.push(r); });
+    });
+    chain.then(function(){
+      var best = null, bestScore = -1;
+      results.forEach(function(r){
+        var val = parseValue(r.text);
+        if(val === null) return;
+        var hasSuffix = /[KkMmBbTt]\s*$/.test(r.text) ? 1 : 0;
+        var score = hasSuffix*1000 + r.text.length;
+        if(score > bestScore){ bestScore = score; best = r; }
+      });
+      if(best){
+        applyOCRResult(best.text, best.confidence);
+        setStatus('OCR ready', 'ready');
+      } else if(results.length){
+        var combined = Array.from(new Set(results.map(function(r){return r.text;}))).sort(function(a,b){return b.length-a.length;}).join('\n');
+        applyOCRResult(combined, results[0].confidence);
+        setStatus('OCR ready — nothing parsed automatically, edit the text below', 'ready');
+      } else {
+        setStatus('OCR ready — could not read any text, try Advanced OCR tuning', 'ready');
+      }
+    });
+  }
+
+  function runManualOCR(){
+    if(!ocrReady || !worker){ setStatus('OCR not ready yet.', 'error'); return; }
+    if(!originalImg){ setStatus('Load an image first.', 'error'); return; }
+    var base = getWorkingCanvas();
+    var scale = parseFloat(document.getElementById('adv-scale').value);
+    var threshold = parseInt(document.getElementById('adv-threshold').value, 10);
+    var invert = document.getElementById('adv-invert').checked;
+    var canvas = preprocessCanvas(base, scale, invert ? 'inverted' : 'threshold', threshold);
+    setStatus('Reading image with manual settings…', 'busy');
+    runOCR(canvas, OCR_OPTS_LINE).then(function(r){
+      if(!r.text){
+        return runOCR(canvas, OCR_OPTS_BLOCK);
+      }
+      return r;
+    }).then(function(r){
+      applyOCRResult(r.text, r.confidence);
+      setStatus('OCR ready', 'ready');
+    });
+  }
+
+  document.getElementById('btn-rerun-auto').addEventListener('click', function(){
+    if(originalImg) runAutoOCR();
+    else setStatus('Load an image first.', 'error');
+  });
+  document.getElementById('btn-rerun-manual').addEventListener('click', runManualOCR);
+
+  var scaleSlider = document.getElementById('adv-scale');
+  var thresholdSlider = document.getElementById('adv-threshold');
+  scaleSlider.addEventListener('input', function(){ document.getElementById('adv-scale-val').textContent = parseFloat(scaleSlider.value).toFixed(1) + '×'; });
+  thresholdSlider.addEventListener('input', function(){ document.getElementById('adv-threshold-val').textContent = thresholdSlider.value; });
+
+  /* ============ image loading entry points ============ */
+
+  var dropzone = document.getElementById('dropzone');
+  var fileInput = document.getElementById('file-input');
+
+  function loadImageFromSrc(src){
+    return new Promise(function(resolve, reject){
+      var img = new Image();
+      img.onload = function(){ resolve(img); };
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+
+  function processImage(src){
+    loadImageFromSrc(src).then(function(img){
+      originalImg = img;
+      rotation = 0;
+      cropRect = null;
+      renderPreview();
+      runAutoOCR();
+    });
+  }
+
+  function fileToDataURL(file){
+    return new Promise(function(resolve, reject){
+      var reader = new FileReader();
+      reader.onload = function(){ resolve(reader.result); };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  dropzone.addEventListener('click', function(e){
+    if(originalImg) return; // clicking now means "start a crop drag", handled by pointerdown
+    fileInput.click();
+  });
+  dropzone.addEventListener('keydown', function(e){ if((e.key === 'Enter' || e.key === ' ') && !originalImg) fileInput.click(); });
+  document.getElementById('btn-browse').addEventListener('click', function(){ fileInput.click(); });
+
+  fileInput.addEventListener('change', function(){
+    var f = fileInput.files[0];
+    if(!f) return;
+    fileToDataURL(f).then(processImage);
+  });
+
+  ['dragenter','dragover'].forEach(function(ev){
+    dropzone.addEventListener(ev, function(e){
+      e.preventDefault(); e.stopPropagation();
+      dropzone.classList.add('drag-over');
+    });
+  });
+  ['dragleave','drop'].forEach(function(ev){
+    dropzone.addEventListener(ev, function(e){
+      e.preventDefault(); e.stopPropagation();
+      dropzone.classList.remove('drag-over');
+    });
+  });
+  dropzone.addEventListener('drop', function(e){
+    var f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if(f && f.type.indexOf('image/') === 0){
+      fileToDataURL(f).then(processImage);
+    }
+  });
+
+  window.addEventListener('paste', function(e){
+    var items = (e.clipboardData || window.clipboardData).items;
+    if(!items) return;
+    for(var i=0;i<items.length;i++){
+      if(items[i].type.indexOf('image/') === 0){
+        e.preventDefault();
+        var blob = items[i].getAsFile();
+        fileToDataURL(blob).then(processImage);
+        return;
+      }
+    }
+  });
+
+  document.getElementById('btn-paste-image').addEventListener('click', function(){
+    if(!navigator.clipboard || !navigator.clipboard.read){
+      alert('Your browser blocked programmatic clipboard access here.\nClick into the drop zone and press Ctrl+V (or Cmd+V) instead.');
+      return;
+    }
+    navigator.clipboard.read().then(function(items){
+      for(var i=0;i<items.length;i++){
+        var types = items[i].types.filter(function(t){ return t.indexOf('image/') === 0; });
+        if(types.length){
+          items[i].getType(types[0]).then(function(blob){
+            fileToDataURL(blob).then(processImage);
+          });
+          return;
+        }
+      }
+      alert('No image found on the clipboard.');
+    }).catch(function(){
+      alert('Could not read the clipboard. Click into the drop zone and press Ctrl+V instead.');
+    });
+  });
+
+  document.getElementById('btn-paste-text').addEventListener('click', function(){
+    if(!navigator.clipboard || !navigator.clipboard.readText){
+      alert('Your browser blocked programmatic clipboard access here.\nClick into the text box and press Ctrl+V instead.');
+      return;
+    }
+    navigator.clipboard.readText().then(function(text){
+      if(!text){ alert('No text found on the clipboard.'); return; }
+      document.getElementById('detected').value = text.trim();
+      document.getElementById('detected').focus();
+    }).catch(function(){
+      alert('Could not read the clipboard. Click into the text box and press Ctrl+V instead.');
+    });
+  });
+
+  document.getElementById('btn-capture').addEventListener('click', function(){
+    navigator.mediaDevices.getDisplayMedia({ video: true }).then(function(stream){
+      var video = document.createElement('video');
+      video.srcObject = stream;
+      return video.play().then(function(){
+        return new Promise(function(resolve){ setTimeout(resolve, 250); });
+      }).then(function(){
+        var c = document.createElement('canvas');
+        c.width = video.videoWidth;
+        c.height = video.videoHeight;
+        c.getContext('2d').drawImage(video, 0, 0);
+        stream.getTracks().forEach(function(t){ t.stop(); });
+        processImage(c.toDataURL('image/png'));
+      });
+    }).catch(function(err){
+      if(err.name !== 'NotAllowedError'){
+        alert('Screen capture failed: ' + err.message);
+      }
+    });
+  });
+
+  /* ============ suffix stamps + number style toggle ============ */
+
+  var detected = document.getElementById('detected');
+  document.querySelectorAll('.stamp').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var letter = btn.getAttribute('data-suffix');
+      var current = detected.value.replace(/\s+$/, '');
+      var stripped = current.replace(/[KkMmBbTt]\s*$/, '');
+      detected.value = stripped + letter;
+      detected.focus();
+    });
+  });
+
+  var numberStyle = 'us';
+  document.querySelectorAll('#style-toggle button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('#style-toggle button').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      numberStyle = btn.getAttribute('data-style');
+      if(lastPlainResult) setFormats(lastPlainResult);
+    });
+  });
+
+  document.getElementById('btn-parse').addEventListener('click', function(){
+    var val = parseValue(detected.value);
+    setFormats(val);
+  });
+
+  /* ============ formats panel ============ */
+
+  var lastPlainResult = null;
+
+  function setFormats(plainStr){
+    lastPlainResult = plainStr;
+    var ids = ['fmt-plain','fmt-grouped','fmt-currency','fmt-scientific','fmt-shorthand'];
+    if(plainStr === null || plainStr === undefined){
+      ids.forEach(function(id){
+        var el = document.getElementById(id);
+        el.textContent = id === 'fmt-plain' ? 'No number detected' : '—';
+        el.classList.add('empty');
+      });
+      document.querySelectorAll('.format-copy').forEach(function(b){ b.disabled = true; });
+      return;
+    }
+    document.getElementById('fmt-plain').textContent = plainStr;
+    document.getElementById('fmt-grouped').textContent = formatGrouped(plainStr, numberStyle);
+    document.getElementById('fmt-currency').textContent = currencySymbolAndFormat(plainStr, numberStyle);
+    document.getElementById('fmt-scientific').textContent = toScientific(plainStr);
+    document.getElementById('fmt-shorthand').textContent = toShorthand(plainStr);
+    ids.forEach(function(id){ document.getElementById(id).classList.remove('empty'); });
+    document.querySelectorAll('.format-copy').forEach(function(b){ b.disabled = false; });
+  }
+
+  document.querySelectorAll('.format-copy').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var targetId = btn.getAttribute('data-target');
+      var text = document.getElementById(targetId).textContent;
+      function fallbackCopy(){
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try{ document.execCommand('copy'); } catch(e){}
+        document.body.removeChild(ta);
+      }
+      var done = function(){
+        var orig = btn.textContent;
+        btn.textContent = '✓';
+        setTimeout(function(){ btn.textContent = orig; }, 1000);
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(text).then(done).catch(function(){ fallbackCopy(); done(); });
+      } else {
+        fallbackCopy(); done();
+      }
+    });
+  });
+
+})();
+</script>
+</body>
+</html>
