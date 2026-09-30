@@ -567,6 +567,14 @@
 (function(){
   "use strict";
 
+  /* Element lookups declared up-front — several sections below wire up
+     event listeners on these before the "image loading entry points"
+     section would otherwise have declared them, which previously threw
+     a ReferenceError on load and silently broke every button on the page. */
+  var dropzone = document.getElementById('dropzone');
+  var fileInput = document.getElementById('file-input');
+  var detected = document.getElementById('detected');
+
   /* ============ core decimal-safe parsing / formatting ============ */
 
   var MULT_ZEROS = { K:3, M:6, B:9, T:12 };
@@ -997,9 +1005,6 @@
 
   /* ============ image loading entry points ============ */
 
-  var dropzone = document.getElementById('dropzone');
-  var fileInput = document.getElementById('file-input');
-
   function loadImageFromSrc(src){
     return new Promise(function(resolve, reject){
       var img = new Image();
@@ -1131,7 +1136,6 @@
 
   /* ============ suffix stamps + number style toggle ============ */
 
-  var detected = document.getElementById('detected');
   document.querySelectorAll('.stamp').forEach(function(btn){
     btn.addEventListener('click', function(){
       var letter = btn.getAttribute('data-suffix');
