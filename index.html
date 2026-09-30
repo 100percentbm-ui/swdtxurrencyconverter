@@ -277,6 +277,8 @@
   .stamp:nth-child(3){ transform:rotate(3deg); }
   .stamp:nth-child(4){ transform:rotate(-2deg); }
   .stamp:nth-child(5){ transform:rotate(4deg); }
+  .stamp.stamp-wide{ width:46px; border-radius:18px; font-size:12.5px; transform:rotate(-3deg); }
+  .stamp.stamp-wide:hover{ transform:rotate(-3deg) scale(1.04); }
   .stamp:hover{ background:var(--green); color:#08211a; }
   .stamp:active{ transform:scale(0.92); }
 
@@ -339,7 +341,7 @@
   /* ---------- reference table ---------- */
   .ref-table{ max-width:640px; margin:0 auto; }
   .ref-row{ display:flex; align-items:baseline; gap:10px; padding:9px 0; }
-  .ref-suffix{ font-family:'IBM Plex Mono', monospace; font-weight:700; color:var(--green); width:28px; }
+  .ref-suffix{ font-family:'IBM Plex Mono', monospace; font-weight:700; color:var(--green); width:34px; }
   .ref-name{ white-space:nowrap; font-size:14px; }
   .ref-dots{ flex:1; border-bottom:1px dotted var(--rule); transform:translateY(-4px); }
   .ref-value{ font-family:'IBM Plex Mono', monospace; font-size:14px; white-space:nowrap; color:var(--ink-soft); }
@@ -472,6 +474,7 @@
           <button class="stamp" data-suffix="M">M</button>
           <button class="stamp" data-suffix="B">B</button>
           <button class="stamp" data-suffix="T">T</button>
+          <button class="stamp stamp-wide" data-suffix="Qa">Qa</button>
         </div>
 
         <div class="parse-row">
@@ -551,6 +554,7 @@
       <div class="ref-row"><span class="ref-suffix">M</span><span class="ref-name">Million</span><span class="ref-dots"></span><span class="ref-value">× 1,000,000</span></div>
       <div class="ref-row"><span class="ref-suffix">B</span><span class="ref-name">Billion</span><span class="ref-dots"></span><span class="ref-value">× 1,000,000,000</span></div>
       <div class="ref-row"><span class="ref-suffix">T</span><span class="ref-name">Trillion</span><span class="ref-dots"></span><span class="ref-value">× 1,000,000,000,000</span></div>
+      <div class="ref-row"><span class="ref-suffix">Qa</span><span class="ref-name">Quadrillion</span><span class="ref-dots"></span><span class="ref-value">× 1,000,000,000,000,000</span></div>
     </div>
   </div>
 </section>
@@ -577,8 +581,8 @@
 
   /* ============ core decimal-safe parsing / formatting ============ */
 
-  var MULT_ZEROS = { K:3, M:6, B:9, T:12 };
-  var NUMBER_RE = /[$€£]?\s*([0-9][0-9,]*\.?[0-9]*)\s*([KkMmBbTt])?/g;
+  var MULT_ZEROS = { K:3, M:6, B:9, T:12, QA:15 };
+  var NUMBER_RE = /[$€£]?\s*([0-9][0-9,]*\.?[0-9]*)\s*(qa|[kmbt])?/gi;
 
   function expand(numStr, suffix){
     numStr = numStr.replace(/,/g, '');
@@ -668,7 +672,7 @@
     var intPart = dot === -1 ? plainStr : plainStr.slice(0, dot);
     var digits = intPart.replace(/^0+(?=\d)/, '');
     var len = digits.length;
-    var tiers = [ [13,'T'], [10,'B'], [7,'M'], [4,'K'] ];
+    var tiers = [ [16,'Qa'], [13,'T'], [10,'B'], [7,'M'], [4,'K'] ];
     for(var i=0;i<tiers.length;i++){
       if(len >= tiers[i][0]){
         var zeros = tiers[i][0]-1;
@@ -691,6 +695,7 @@
     ['501.22B', '501,220,000,000'],
     ['170.22M', '170,220,000'],
     ['1.03T', '1,030,000,000,000'],
+    ['2.5Qa', '2,500,000,000,000,000'],
     ['4.2M', '4,200,000']
   ];
   var demoIdx = 0;
@@ -908,7 +913,7 @@
     return c;
   }
 
-  var OCR_OPTS_LINE = { tessedit_char_whitelist: '0123456789.,KMBTkmbt$\u20ac\u00a3', tessedit_pageseg_mode: '7' };
+  var OCR_OPTS_LINE = { tessedit_char_whitelist: '0123456789.,KMBTQAkmbtqa$\u20ac\u00a3', tessedit_pageseg_mode: '7' };
   var OCR_OPTS_BLOCK = { tessedit_pageseg_mode: '6' };
 
   function runOCR(canvas, opts){
@@ -955,7 +960,7 @@
       results.forEach(function(r){
         var val = parseValue(r.text);
         if(val === null) return;
-        var hasSuffix = /[KkMmBbTt]\s*$/.test(r.text) ? 1 : 0;
+        var hasSuffix = /(qa|[kmbt])\s*$/i.test(r.text) ? 1 : 0;
         var score = hasSuffix*1000 + r.text.length;
         if(score > bestScore){ bestScore = score; best = r; }
       });
@@ -1140,7 +1145,7 @@
     btn.addEventListener('click', function(){
       var letter = btn.getAttribute('data-suffix');
       var current = detected.value.replace(/\s+$/, '');
-      var stripped = current.replace(/[KkMmBbTt]\s*$/, '');
+      var stripped = current.replace(/(qa|[kmbt])\s*$/i, '');
       detected.value = stripped + letter;
       detected.focus();
     });
